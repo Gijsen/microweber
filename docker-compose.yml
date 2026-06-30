@@ -5,7 +5,9 @@ services:
     image: thecodingmachine/php:8.3-v5-apache-node20
 
     volumes:
-      - /var/lib/docker/volumes/arcane_arcane-data/_data/projects/Microweber_-_Dieter:/var/www/html
+      - ./:/var/www/html
+
+    working_dir: /var/www/html
 
     depends_on:
       - mariadb
@@ -13,52 +15,32 @@ services:
     environment:
       COMPOSER_ALLOW_SUPERUSER: 1
 
-      APACHE_EXTENSION_DAV: 0
       PHP_INI_MEMORY_LIMIT: 1g
       PHP_INI_ERROR_REPORTING: E_ALL
 
       PHP_EXTENSIONS: pgsql gettext imap sockets zip curl dom gd exif intl mbstring bcmath opcache soap xml xmlrpc fileinfo pdo_sqlite pdo_mysql pdo_pgsql
       PECL_EXTENSION: sodium
 
-      STARTUP_COMMAND_1: composer install
-
-      # 🚨 CRITICAL: fix Microweber URL generation
-      APP_URL: https://micro.dietergijsen.be
-      FORCE_HTTPS: "true"
+      APACHE_EXTENSION_DAV: 0
 
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
 
-      # -----------------------------
-      # HTTP → HTTPS redirect router
-      # -----------------------------
+      # HTTP redirect
       - "traefik.http.routers.micro.rule=Host(`micro.dietergijsen.be`)"
       - "traefik.http.routers.micro.entrypoints=web"
       - "traefik.http.routers.micro.middlewares=redirect-to-https"
 
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
-      # -----------------------------
-      # HTTPS router (MAIN)
-      # -----------------------------
+      # HTTPS router
       - "traefik.http.routers.micro-secure.rule=Host(`micro.dietergijsen.be`)"
       - "traefik.http.routers.micro-secure.entrypoints=websecure"
       - "traefik.http.routers.micro-secure.tls=true"
       - "traefik.http.routers.micro-secure.tls.certresolver=letsencrypt"
 
-      # -----------------------------
-      # CRITICAL FIX: forwarded headers
-      # -----------------------------
-      - "traefik.http.middlewares.micro-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
-      - "traefik.http.middlewares.micro-headers.headers.customrequestheaders.X-Forwarded-Port=443"
-      - "traefik.http.middlewares.micro-headers.headers.customrequestheaders.X-Forwarded-Host=micro.dietergijsen.be"
-
-      - "traefik.http.routers.micro-secure.middlewares=micro-headers"
-
-      # -----------------------------
-      # Service port
-      # -----------------------------
+      # IMPORTANT: correct service port
       - "traefik.http.services.micro.loadbalancer.server.port=80"
 
     networks:
@@ -71,11 +53,10 @@ services:
       - mariadb:/var/lib/mysql
 
     environment:
-      MYSQL_ALLOW_EMPTY_PASSWORD: "no"
-      MYSQL_ROOT_PASSWORD: "root"
-      MYSQL_USER: "laravel"
-      MYSQL_PASSWORD: "laravel"
-      MYSQL_DATABASE: "laravel"
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: laravel
 
     networks:
       - proxy

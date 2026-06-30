@@ -5,7 +5,7 @@ services:
     image: thecodingmachine/php:8.3-v5-apache-node20
 
     volumes:
-      - ./:/var/www/html
+      - /var/lib/docker/volumes/arcane_arcane-data/_data/projects/Microweber_-_Dieter:/var/www/html
 
     working_dir: /var/www/html
 

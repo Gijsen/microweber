@@ -2,46 +2,43 @@ version: "3.9"
 
 services:
   php-apache:
-    image: thecodingmachine/php:8.3-v5-apache-node20
+  image: thecodingmachine/php:8.3-v5-apache-node20
 
-    volumes:
-      - ./:/var/www/html
+  volumes:
+    - ./:/var/www/html
 
-    depends_on:
-      - mariadb
+  depends_on:
+    - mariadb
 
-    environment:
-      COMPOSER_ALLOW_SUPERUSER: 1
-      APACHE_EXTENSION_DAV: 0
-      PHP_INI_MEMORY_LIMIT: 1g
-      PHP_INI_ERROR_REPORTING: E_ALL
-      PHP_EXTENSIONS: pgsql gettext imap sockets zip curl dom gd exif intl mbstring bcmath curl dom opcache soap xml xmlrpc fileinfo pdo_sqlite pdo_mysql pdo_pgsql
-      PECL_EXTENSION: sodium
-      STARTUP_COMMAND_1: composer install
+  environment:
+    COMPOSER_ALLOW_SUPERUSER: 1
+    APACHE_EXTENSION_DAV: 0
+    PHP_INI_MEMORY_LIMIT: 1g
+    PHP_INI_ERROR_REPORTING: E_ALL
+    PHP_EXTENSIONS: pgsql gettext imap sockets zip curl dom gd exif intl mbstring bcmath curl dom opcache soap xml xmlrpc fileinfo pdo_sqlite pdo_mysql pdo_pgsql
+    PECL_EXTENSION: sodium
+    STARTUP_COMMAND_1: composer install
 
-    labels:
-      - "traefik.enable=true"
+  labels:
+    - "traefik.enable=true"
+    - "traefik.docker.network=proxy"
 
-      # HTTP
-      - "traefik.http.routers.laravel.rule=Host(`micro.dietergijsen.be`)"
-      - "traefik.http.routers.laravel.entrypoints=web"
-      - "traefik.http.routers.laravel.middlewares=redirect-to-https"
+    # HTTP router
+    - "traefik.http.routers.micro.rule=Host(`micro.dietergijsen.be`)"
+    - "traefik.http.routers.micro.entrypoints=web"
+    - "traefik.http.routers.micro.middlewares=redirect-to-https"
 
-      # Redirect HTTP -> HTTPS
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+    # HTTPS router
+    - "traefik.http.routers.micro-secure.rule=Host(`micro.dietergijsen.be`)"
+    - "traefik.http.routers.micro-secure.entrypoints=websecure"
+    - "traefik.http.routers.micro-secure.tls=true"
+    - "traefik.http.routers.micro-secure.tls.certresolver=letsencrypt"
 
-      # HTTPS
-      - "traefik.http.routers.laravel-secure.rule=Host(`micro.dietergijsen.be`)"
-      - "traefik.http.routers.laravel-secure.entrypoints=websecure"
-      - "traefik.http.routers.laravel-secure.tls=true"
-      - "traefik.http.routers.laravel-secure.tls.certresolver=letsencrypt"
+    # THIS IS REQUIRED (backend service)
+    - "traefik.http.services.micro.loadbalancer.server.port=80"
 
-      # Apache listens on port 80 inside the container
-      - "traefik.http.services.laravel.loadbalancer.server.port=80"
-
-    networks:
-      - default
-      - proxy
+  networks:
+    - proxy
 
   mariadb:
     image: mariadb:10.3
@@ -57,7 +54,7 @@ services:
       MYSQL_DATABASE: "laravel"
 
     networks:
-      - default
+      - proxy
 
 volumes:
   mariadb:
